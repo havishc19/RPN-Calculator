@@ -1,25 +1,27 @@
-#!/usr/bin/env python3
+#!/usr/bin/python
 
 import socket
 import sys
 
 HOST = '127.0.0.1'  # The server's hostname or IP address
-PORT = 65432        # The port used by the server
+PORT = 65432        # The port used by the server, defaulted to 65432
 
 class ExpHandler:
 	def __init__(self, postFix):
 		self.postFix = postFix
-		self.operandStack = []
-		self.expPointer = 0
+		self.operandStack = [] # Used by the client to maintain the state of Postfix expression evaluation
+		self.expPointer = 0 # Pointer to the expression, helps in the sequential evaluation of the expression
 		self.exp = []
-		self.lastExpReq = False
+		self.lastExpReq = False #Flag used by the program to know if the request being sent is the last or not.
 
 	def checkOperator(self, val):
+		#check if the operator is valid or not
 		if(len(val) == 1 and (val == "+" or val == "*" or val == "-" or val == "/")):
 			return True
 		return False
 
 	def checkNum(self, val):
+		#check if an operand if a valid int/float
 		try:
 			temp = float(val)
 			return True
@@ -27,6 +29,7 @@ class ExpHandler:
 			return False
 
 	def checkDelimiter(self):
+		#splits the given expression with " ", and validates the correctness of operators and operands in it. 
 		expSplit = self.postFix.split(" ")
 		for val in expSplit:
 			if(len(val) == 0):
@@ -40,6 +43,7 @@ class ExpHandler:
 		return True
 
 	def isPostFixValid(self):
+		#Checks if the given expression is in a valid reverse polish notation or not
 		operandStack = []
 		for val in self.exp:
 			if(self.checkNum(val)):
@@ -57,16 +61,19 @@ class ExpHandler:
 		return True
 
 	def validateExpression(self):
-		#only space delimiter allowed
+		#only space delimiter allowed, validates the given postfix expression
 		checkDelimiter = self.checkDelimiter()
 		checkExpFormat = self.isPostFixValid()
-		print(self.postFix, checkDelimiter, checkExpFormat)
+		# print(self.postFix, checkDelimiter, checkExpFormat)
 		return checkDelimiter and len(self.exp) >= 3 and checkExpFormat
 
 	def hasNext(self):
+		#hasNext() method tells if there still a chunk (Op1 Op2 Operator) in the expression yet to be processed. 
+		#In other words, it tells the program when to stop the execution of the given Postfix expression
 		return self.expPointer < len(self.exp)
 
 	def next(self):
+		#next returns the next request to be dispatched to the server in the format "Op1 Op2 Operator"
 		i = self.expPointer
 		while( i < len(self.exp) ):
 			val = self.exp[i]
@@ -82,6 +89,7 @@ class ExpHandler:
 			i = i + 1
 
 	def pushResult(self, operand):
+		#Pushes the result from the server into the operand stack, helps in the correct evaluation of the expression
 		self.operandStack.append(operand)
 
 def clientOutput(result, final):
@@ -104,12 +112,14 @@ def sendServer(expHandler):
     		expHandler.pushResult(data)
 
 def validatePort(portNumber):
+	#Validates if the given port number is an integer and lies in the zone of non-privileged ports
     try:
         return int(portNumber) >= 1024 and int(portNumber) <= 65535
     except:
         return False
 
 def validateCmdLineArgs():
+	#Validates the length of cmd line args and validates the port number as well.
     if(len(sys.argv) != 3):
         return False
     return validatePort(sys.argv[1])
@@ -124,10 +134,13 @@ def launchClient():
 		PORT = int(sys.argv[1])
 		s.connect((HOST, PORT))
 		postFix = sys.argv[2]
+		#ExpHandler provides routines to split, validate and dispatch the given Postfix expression in chunks
 		expHandler = ExpHandler(postFix)
 		if(not expHandler.validateExpression()):
+			#If the given Postfix expression is wrong, the client is terminated
 			print("Postfix Expression format incorrect, try again!")
 			sys.exit(-1)
+		#sendServer() function handles the job of sending requests to the server in chunks
 		sendServer(expHandler)
 		s.close()
 	except Exception as e:
@@ -136,4 +149,5 @@ def launchClient():
 
 
 if __name__ == '__main__':
+	# Launches Client: Connects socket to Server on a given Port number and sends out requests in chunks to evaluate the given Postfix expression
     launchClient()
