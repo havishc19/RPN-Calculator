@@ -90,10 +90,10 @@ def hostServer():
                     print(serverOutput(postFix))
                     result = processExp(postFix)
                     conn.send(result.encode("UTF-8"))
-                s.shutdown(socket.SHUT_RDWR)
-                s.close()
             except:
                 pass
+        s.shutdown(socket.SHUT_RDWR)
+        s.close()
     except Exception as e:
         print(e)
 
